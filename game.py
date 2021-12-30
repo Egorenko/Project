@@ -24,7 +24,7 @@ def get_rating(name):
 
 
 def get_options():
-    choices_case = [i for i in input('').split(',')]
+    choices_case = [i for i in input('').split(', ')]
     if choices_case == ['']:
         choices_case = ['rock', 'paper', 'scissors']
     print("Okay, let's start")
