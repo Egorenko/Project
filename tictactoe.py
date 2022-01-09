@@ -110,6 +110,8 @@ class Table(list):  # игровое поле изначально пустое
             self.print_table()
             return True
 
+    # дерево из тэйбла
+    # стек
     def _max(self, char):
         max_value = -2
         line, col = None, None
@@ -170,6 +172,8 @@ class Table(list):  # игровое поле изначально пустое
                 self.table[i][j] = ' '
         return min_value, line, col
 
+
+# функция для вызова
 
 command = input('Input command: ')
 while not command == 'exit':
