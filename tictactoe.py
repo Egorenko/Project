@@ -2,10 +2,13 @@ import random
 from anytree import RenderTree, AsciiStyle, Node, NodeMixin
 
 
-class Table(list):  # игровое поле изначально пустое
-    def __init__(self):
+class Table(list, NodeMixin):  # игровое поле изначально пустое
+    def __init__(self, parent=None, children=None):
         super().__init__()
         self.table = [[' ' for _ in range(3)] for _ in range(3)]
+        self.parent = parent
+        if children:
+            self.children = children
 
     def print_table(self):
         print('---------')
@@ -128,17 +131,17 @@ class Table(list):  # игровое поле изначально пустое
             return -1
         elif res == 'Draw':
             return 0
-        start = Node(self.return_table(), parent)  # создаем корневой узел в виде пустого поля
+        start = self.table  # создаем корневой узел в виде пустого поля
         parent = start  # делаем его родиетелем для следующих узлов
         for i in range(3):
             for j in range(3):
                 if self.table[i][j] == ' ':
                     self.table[i][j] = char  # делаем ход
-                    a = Node(self.return_table(), parent=parent)  # создаем узлы с этим ходом
+                    a = Table(parent=parent)  # создаем узлы с этим ходом
                     self.table[i][j] = ' '  # убираем ход
         with open('output.txt', 'a', encoding='utf-8') as fil:
             print(RenderTree(start, style=AsciiStyle()).by_attr(), score, file=fil)
-            print(start.children, file=fil)  # это вывод в файл, потому что читать в консоли было неудобно
+            # print(start.children, file=fil)  # это вывод в файл, потому что читать в консоли было неудобно
         return score  # возвращаем очки для доски
 
 
