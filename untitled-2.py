@@ -45,15 +45,16 @@ class Table(list):  # игровое поле изначально пустое
         if not_empty:
             return 'Draw'  # ничья
 
-    def minimax(self, char, parent=None):  # создает дерево всех состояний доски, вроде бы
+    def minimax(self, char, parent=None):  # без рекурсии, только 9 первых потомков
         max_score = -2  # значение очков условно для крестиков, потом это будет для ИИ
+        score = -3
         res = self.game_over()  # проверяем на конец игры
         if res == 'X':
-            return 1, 'w', 'w'
+            return 1
         elif res == 'O':
-            return -1, 'l', 'l'
+            return -1
         elif res == 'Draw':
-            return 0, 'd', 'd'
+            return 0
         if parent is None:
             parent = Table()
         for i in range(3):
@@ -61,6 +62,13 @@ class Table(list):  # игровое поле изначально пустое
                 if parent.table[i][j] == ' ':
                     parent.table[i][j] = char
                     parent.child(Table(initial_view=repr(parent), parent=parent))
+                    res = parent.game_over()  # проверяем на конец игры
+                    if res == 'X':
+                        return 1
+                    elif res == 'O':
+                        return -1
+                    elif res == 'Draw':
+                        return 0
                     parent.table[i][j] = ' '
         for child in parent.children:
             if char == 'X':
@@ -69,7 +77,10 @@ class Table(list):  # игровое поле изначально пустое
             else:
                 char = 'X'
                 max_score *= -1
-            self.minimax(char, parent=child)
+            score = self.minimax(char, parent=child)
+            if score > max_score:
+                max_score = score
+        return score
 
 
 table = Table()
