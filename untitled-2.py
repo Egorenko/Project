@@ -45,7 +45,7 @@ class Table(list):  # игровое поле изначально пустое
         if not_empty:
             return 'Draw'  # ничья
 
-    def minimax(self, char, parent=None):  # без рекурсии, только 9 первых потомков
+    def minimax(self, char, parent=None):  # создает дерево всех состояний доски, вроде бы
         max_score = -2  # значение очков условно для крестиков, потом это будет для ИИ
         res = self.game_over()  # проверяем на конец игры
         if res == 'X':
