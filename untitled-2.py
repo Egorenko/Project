@@ -1,5 +1,8 @@
+import time
+
+
 class Table(list):  # игровое поле изначально пустое
-    def __init__(self, initial_view: str = None, parent=None, children: list = None):
+    def __init__(self, score: int = None, initial_view: str = None, parent=None, children: list = None):
         super().__init__()
         if initial_view:  # строка вида [[' ', ' ', ' '], [' ', ' ', ' '], [' ', ' ', ' ']]
             self.table = [[initial_view[i] for i in range(3, 14, 5)],
@@ -11,6 +14,7 @@ class Table(list):  # игровое поле изначально пустое
         self.children = []
         if children:
             self.children = children
+        self.score = score
 
     def child(self, child):
         self.children.append(child)
@@ -45,43 +49,73 @@ class Table(list):  # игровое поле изначально пустое
         if not_empty:
             return 'Draw'  # ничья
 
-    def minimax(self, char, parent=None):  # без рекурсии, только 9 первых потомков
-        max_score = -2  # значение очков условно для крестиков, потом это будет для ИИ
-        score = -3
-        res = self.game_over()  # проверяем на конец игры
-        if res == 'X':
-            return 1
-        elif res == 'O':
-            return -1
-        elif res == 'Draw':
-            return 0
+    def what_move(self):
+        x_score = 0
+        o_score = 0
+        for i in range(3):
+            for j in range(3):
+                if self.table[i][j] == 'X':
+                    x_score += 1
+                elif self.table[i][j] == 'O':
+                    o_score += 1
+        if x_score <= o_score:
+            return 'X'
+        else:
+            return 'O'
+
+    @staticmethod
+    def tree(parent=None):
         if parent is None:
             parent = Table()
+        char = parent.what_move()
         for i in range(3):
             for j in range(3):
                 if parent.table[i][j] == ' ':
                     parent.table[i][j] = char
                     parent.child(Table(initial_view=repr(parent), parent=parent))
-                    res = parent.game_over()  # проверяем на конец игры
-                    if res == 'X':
-                        return 1
-                    elif res == 'O':
-                        return -1
-                    elif res == 'Draw':
-                        return 0
                     parent.table[i][j] = ' '
         for child in parent.children:
-            if char == 'X':
-                char = 'O'
-                max_score *= -1
+            child.tree(parent=child)
+        return parent
+
+    def children_score(self, root=None):
+        if root is None:
+            tree = self.tree()  # создаем дерево
+        else:
+            tree = root
+        for child in tree.children:  # переберимаем потомков
+            res = child.game_over()  # проверяем на конец игры
+            if res == 'X':
+                child.children.clear()  # удаляем потомков, так как они не нужны
+                child.score = 1
+                break
+            elif res == 'O':
+                child.children.clear()
+                child.score = -1
+                break
+            elif res == 'Draw':
+                child.children.clear()
+                child.score = 0
+                break
             else:
-                char = 'X'
-                max_score *= -1
-            score = self.minimax(char, parent=child)
-            if score > max_score:
-                max_score = score
-        return score
+                child.children_score(root=child)  # вызываем оценку потомков для этого потомка
+        return tree
 
+    def minimax(self, ai_char, root=None):
+        tree = self.children_score(root)
+        while tree.score is None:
+            if all(map(lambda child: child.score is not None, tree.children)):
+                if ai_char == tree.what_move():
+                    tree.score = min(child.score for child in tree.children)
+                else:
+                    tree.score = max(child.score for child in tree.children)
+            else:
+                for child in tree.children:
+                    child.minimax(ai_char, root=child)
+        return tree.score
 
+start_time = time.time()
 table = Table()
 table.minimax('X')
+end_time = time.time()
+print(f'{end_time - start_time} second')
