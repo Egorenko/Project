@@ -2,7 +2,11 @@ import time
 
 
 class Table(list):  # игровое поле изначально пустое
-    def __init__(self, score: int = None, initial_view: str = None, parent=None, children: list = None):
+    def __init__(self, score: int = None,
+                 initial_view: str = None,
+                 parent=None,
+                 children: list = None,
+                 moves: str = None):
         super().__init__()
         if initial_view:  # строка вида [[' ', ' ', ' '], [' ', ' ', ' '], [' ', ' ', ' ']]
             self.table = [[initial_view[i] for i in range(3, 14, 5)],
@@ -15,9 +19,25 @@ class Table(list):  # игровое поле изначально пустое
         if children:
             self.children = children
         self.score = score
+        self.is_over = False
+        if (''.join(c for c in map(''.join, self.table)).count('X') <=
+                ''.join(c for c in map(''.join, self.table)).count('O')):
+            self.char = 'X'
+        else:
+            self.char = 'O'
+        self.result = False
+        self.moves = ''
+        if moves:
+            self.moves = moves
 
     def child(self, child):
         self.children.append(child)
+
+    def plus_move(self, move: str):
+        self.moves += move
+
+    def minus_move(self):
+        self.moves = self.moves[0:-2]
 
     def __str__(self) -> str:
         value = '---------\n'
@@ -29,7 +49,7 @@ class Table(list):  # игровое поле изначально пустое
     def __repr__(self) -> str:
         return str(self.table)
 
-    def game_over(self) -> str:  # проверка на конец игры
+    def game_over(self):  # проверка на конец игры
         for i in range(3):  # победа по горизонтали
             if self.table[i][0] != ' ' and self.table[i] == [self.table[i][0] for _ in range(3)]:
                 return self.table[i][0]
@@ -48,74 +68,99 @@ class Table(list):  # игровое поле изначально пустое
                 not_empty = False
         if not_empty:
             return 'Draw'  # ничья
-
-    def what_move(self):
-        x_score = 0
-        o_score = 0
-        for i in range(3):
-            for j in range(3):
-                if self.table[i][j] == 'X':
-                    x_score += 1
-                elif self.table[i][j] == 'O':
-                    o_score += 1
-        if x_score <= o_score:
-            return 'X'
-        else:
-            return 'O'
+        return False
 
     @staticmethod
-    def tree(parent=None):
-        if parent is None:
+    def tree(root=None, ai_char='X'):
+        if root is None:
             parent = Table()
-        char = parent.what_move()
+        else:
+            parent = root
         for i in range(3):
             for j in range(3):
                 if parent.table[i][j] == ' ':
-                    parent.table[i][j] = char
-                    parent.child(Table(initial_view=repr(parent), parent=parent))
+                    parent.table[i][j] = parent.char
+                    parent.plus_move(f'{i}{j}')
+                    parent.child(Table(initial_view=repr(parent), parent=parent, moves=parent.moves))
+                    parent.minus_move()
                     parent.table[i][j] = ' '
         for child in parent.children:
-            child.tree(parent=child)
+            if not child.game_over():
+                child.tree(root=child)
+            else:
+                child.is_over = True
+                child.result = child.game_over()
+                if child.result == 'Draw':
+                    child.score = 0
+                else:
+                    if child.result != ai_char:
+                        child.score = -1
+                    else:
+                        child.score = 1
         return parent
 
-    def children_score(self, root=None):
-        if root is None:
-            tree = self.tree()  # создаем дерево
+    def children_score(self, ai_char='X', root=None, is_one=True):
+        if is_one:
+            tree = self.tree(root=root)
+            is_one = False
         else:
             tree = root
-        for child in tree.children:  # переберимаем потомков
-            res = child.game_over()  # проверяем на конец игры
-            if res == 'X':
-                child.children.clear()  # удаляем потомков, так как они не нужны
-                child.score = 1
-                break
-            elif res == 'O':
-                child.children.clear()
-                child.score = -1
-                break
-            elif res == 'Draw':
-                child.children.clear()
-                child.score = 0
-                break
-            else:
-                child.children_score(root=child)  # вызываем оценку потомков для этого потомка
-        return tree
-
-    def minimax(self, ai_char, root=None):
-        tree = self.children_score(root)
-        while tree.score is None:
-            if all(map(lambda child: child.score is not None, tree.children)):
-                if ai_char == tree.what_move():
-                    tree.score = min(child.score for child in tree.children)
+        if tree.score is None:
+            for child in tree.children:  # переберимаем потомков
+                if child.score is not None:
+                    continue
                 else:
-                    tree.score = max(child.score for child in tree.children)
+                    res = child.game_over()  # проверяем на конец игры
+                    if res == 'Draw':
+                        child.score = 0
+                    elif res == ai_char:
+                        child.score = 1
+                    else:
+                        if res is not False:
+                            child.score = -1
+                        else:
+                            child.children_score(root=child, is_one=is_one)  # вызываем оценку потомков для этого
+                            # потомка
+        if all(map(lambda baby: baby.score is not None, tree.children)):
+            if ai_char == tree.char:
+                tree.score = max(child.score for child in tree.children)
             else:
-                for child in tree.children:
-                    child.minimax(ai_char, root=child)
-        return tree.score
+                tree.score = min(child.score for child in tree.children)
+        return self
 
-start_time = time.time()
-table = Table()
-table.minimax('X')
-end_time = time.time()
-print(f'{end_time - start_time} second')
+    def minimax(self, ai_char='X', root=None):
+        tree = self.children_score(root=root)
+        for child in tree.children:
+            if child.score == tree.score:
+                line = int(child.moves[-2])
+                col = int(child.moves[-1])
+                self.table[line][col] = ai_char
+                print(self)
+                break
+        return self.table
+
+    def valid_coordinates(self, char):
+        coordinates = input('Enter the coordinates: ')
+        if not (coordinates[0].isdigit() and coordinates[2].isdigit()):
+            print('You should enter numbers!')
+        else:
+            if not (1 <= int(coordinates[0]) <= 3 and 1 <= int(coordinates[2]) <= 3):
+                print('Coordinates should be from 1 to 3!')
+            else:
+                if not (self.table[int(coordinates[0]) - 1][int(coordinates[2]) - 1] == ' '):
+                    print('This cell is occupied! Choose another one!')
+                else:
+                    self.table[int(coordinates[0]) - 1][int(coordinates[2]) - 1] = char
+                    print(self)
+                    return True
+        self.valid_coordinates(char)
+
+
+table = Table(initial_view="[['X', ' ', ' '], ['X', ' ', 'O'], ['O', ' ', ' ']]")
+start = time.time()
+while not table.game_over():
+    table.minimax(root=table)
+    if not table.game_over():
+        table.valid_coordinates('O')
+end = time.time()
+print(f'{end - start} sec')
