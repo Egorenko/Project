@@ -1,0 +1,25 @@
+{
+  "events": [
+        {
+          "id": 101,
+          "category": "animal welfare",
+          "title": "Cat Adoption Day",
+          "time": "12:00",
+          "date": "28.01.2022",
+        },
+        {
+          "id": 102,
+          "category": "bird welfare",
+          "title": "Tits Adoption Day",
+          "time": "13:00",
+          "date": "20.01.2022",
+        },
+        {
+          "id": 103,
+          "category": "animal welfare",
+          "title": "Dogs Adoption Day",
+          "time": "20:10",
+          "date": "28.11.2022",
+        }
+ ]
+}
